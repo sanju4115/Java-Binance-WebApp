@@ -28,6 +28,7 @@ public class BinanceServiceImpl implements BinanceService {
 
     private static final String BIDS  = "BIDS";
     private static final String ASKS  = "ASKS";
+    private static final String BTC  = "BTC";
 
     private Map<String, Long> lastUpdateId = new HashMap<>();
 
@@ -67,7 +68,7 @@ public class BinanceServiceImpl implements BinanceService {
         allPrices.stream().filter(tickerPrice -> {
             String symbol = tickerPrice.getSymbol();
             CharSequence charSequence = symbol.subSequence(symbol.length() - 3, symbol.length());
-            return charSequence.toString().equals("BTC");
+            return charSequence.toString().equals(BTC);
         }).forEach(tickerPrice -> symbols.add(tickerPrice.getSymbol()));
         return symbols;
     }
