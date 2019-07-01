@@ -14,7 +14,7 @@ These instructions will get you a copy of the project up and running on your loc
 What things you need to install the software and how to install them
 
 1. **InfluxDB**: [Install](https://docs.influxdata.com/influxdb/v1.7/introduction/installation/) Time series databse is required to store orderbook updates.
-2. Open CLI of influxdb by command influxd -config /usr/local/etc/influxdb.conf
+2. Open CLI of influxdb by command 'influxd -config /usr/local/etc/influxdb.conf'
 3. Run these commands one by one:
 	a. CREATE USER sanjay WITH PASSWORD 'timeseries4days' WITH ALL PRIVILEGES
 	b. CREATE DATABASE mstakx

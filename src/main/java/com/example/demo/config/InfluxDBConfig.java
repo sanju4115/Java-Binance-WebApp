@@ -13,10 +13,6 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class InfluxDBConfig {
 
-    // CREATE USER sanjay WITH PASSWORD 'timeseries4days' WITH ALL PRIVILEGES
-    // CREATE DATABASE mstakx
-    // CREATE RETENTION POLICY "two_hours_mstakx" ON "mstakx" DURATION 2h REPLICATION 1 DEFAULT
-
     private static final Logger LOG = LoggerFactory.getLogger(InfluxDBConfig.class);
 
     @Value("${influx.db.url}")
