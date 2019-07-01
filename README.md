@@ -14,12 +14,13 @@ These instructions will get you a copy of the project up and running on your loc
 What things you need to install the software and how to install them
 
 1. **InfluxDB**: [Install](https://docs.influxdata.com/influxdb/v1.7/introduction/installation/) Time series databse is required to store orderbook updates.
-2. Open CLI of influxdb by command `influxd -config /usr/local/etc/influxdb.conf`
-3. Run these commands one by one:
-- ` CREATE USER sanjay WITH PASSWORD 'timeseries4days' WITH ALL PRIVILEGES`
-- `CREATE DATABASE mstakx`
-- `CREATE RETENTION POLICY "two_hours_mstakx" ON "mstakx" DURATION 2h REPLICATION 1 DEFAULT`
-2. **JAVA 8**: [Install](https://www.oracle.com/technetwork/java/javase/overview/java8-2100321.html) It is requrired as application uses spring boot.
+2. Run influxdb on port 8086 (default one)
+3. Open CLI of influxdb by command `influxd -config /usr/local/etc/influxdb.conf`
+4. Run these commands one by one:
+    - ` CREATE USER sanjay WITH PASSWORD 'timeseries4days' WITH ALL PRIVILEGES`
+    - `CREATE DATABASE mstakx`
+    - `CREATE RETENTION POLICY "two_hours_mstakx" ON "mstakx" DURATION 2h REPLICATION 1 DEFAULT`
+5. **JAVA 8**: [Install](https://www.oracle.com/technetwork/java/javase/overview/java8-2100321.html) It is requrired as application uses spring boot.
 
 ### Installing
 
