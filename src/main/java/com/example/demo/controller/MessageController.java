@@ -1,20 +1,31 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.User;
-import com.example.demo.model.UserResponse;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
+import com.example.demo.service.BinanceService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
+
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.NavigableMap;
 
 
 @Controller
 public class MessageController {
 
-    @MessageMapping("/user")
-    @SendTo("/topic/user")
-    public UserResponse getUser(User user) {
+    @Autowired
+    private SimpMessagingTemplate messageTemplate;
 
-        return new UserResponse("Hi " + user.getName());
+    @Autowired
+    private BinanceService binanceService;
+
+    @Scheduled(fixedDelay=1000)
+    public void priceManualConvert() throws Exception {
+        Map<String, Map<String, NavigableMap<BigDecimal, BigDecimal>>> depthCache = binanceService.getDepthCache();
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonInString = mapper.writeValueAsString(depthCache);
+        this.messageTemplate.convertAndSend("/stock/price", jsonInString);
     }
-
 }

@@ -29,6 +29,8 @@ What things you need to install the software and how to install them
 1. Clone the repository via ssh/http.
 2. Run this command 'mvn spring-boot:run' from root of the project
 
-Hit `http:localhost:8090/` with all the API routes.
+Hit `http:localhost:8090/` with all the API routes and go to the homepage.
+
+![Design Flow of Supply](./binance_order.png)
 
 You can now proceed to test the APIs using Postman or implement new features.

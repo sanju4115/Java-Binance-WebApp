@@ -29,4 +29,6 @@ public interface BinanceService {
     Map<String, Map<String, NavigableMap<BigDecimal, BigDecimal>>> getDepthCache();
 
     void saveDepthCache(String symbol, Long eventTime);
+
+    List<String> getSymbols();
 }

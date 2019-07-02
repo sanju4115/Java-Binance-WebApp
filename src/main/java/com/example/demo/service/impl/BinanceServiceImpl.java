@@ -9,11 +9,14 @@ import com.binance.api.client.domain.market.OrderBook;
 import com.binance.api.client.domain.market.OrderBookEntry;
 import com.binance.api.client.domain.market.TickerPrice;
 import com.example.demo.service.BinanceService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Point;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -33,9 +36,13 @@ public class BinanceServiceImpl implements BinanceService {
     private Map<String, Long> lastUpdateId = new HashMap<>();
 
     private Map<String, Map<String, NavigableMap<BigDecimal, BigDecimal>>> depthCache = new HashMap<>();
+    Set<String> symbols = new HashSet<>();
 
     @Autowired
     private InfluxDB influxDB;
+
+    @Autowired
+    private SimpMessagingTemplate messageTemplate;
 
     @PostConstruct
     public void init() {
@@ -61,7 +68,6 @@ public class BinanceServiceImpl implements BinanceService {
 
     @Override
     public Set<String> getAllPrices(){
-        Set<String> symbols = new HashSet<>();
         BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance();
         BinanceApiRestClient client = factory.newRestClient();
         List<TickerPrice> allPrices = client.getAllPrices();
@@ -118,6 +124,7 @@ public class BinanceServiceImpl implements BinanceService {
                     updateOrderBook(getAsks(symbol), response.getAsks());
                     updateOrderBook(getBids(symbol), response.getBids());
                     saveDepthCache(symbol, response.getEventTime());
+                    //sendMessage();
                 }
             }
 
@@ -202,5 +209,12 @@ public class BinanceServiceImpl implements BinanceService {
                 .addField("best_bid", getBestBid(symbol).toString())
                 .build();
         influxDB.write(point);
+    }
+
+    @Override
+    public List<String> getSymbols() {
+        List<String> list = new ArrayList<>(symbols);
+        Collections.sort(list);
+        return list;
     }
 }

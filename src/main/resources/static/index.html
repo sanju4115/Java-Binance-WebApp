@@ -1,53 +1,105 @@
-<!DOCTYPE html>
 <html>
 <head>
-    <title>Hello WebSocket</title>
-    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/main.css" rel="stylesheet">
-    <script src="/webjars/jquery/jquery.min.js"></script>
-    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
-    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
-    <script src="/app.js"></script>
+    <title>Test</title>
+    <script src="https://cdn.jsdelivr.net/sockjs/1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 <body>
-<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being
-    enabled. Please enable
-    Javascript and reload this page!</h2></noscript>
-<div id="main-content" class="container">
-    <div class="row">
-        <div class="col-md-6">
-            <form class="form-inline">
-                <div class="form-group">
-                    <label for="connect">WebSocket connection:</label>
-                    <button id="connect" class="btn btn-default" type="submit">Connect</button>
-                    <button id="disconnect" class="btn btn-default" type="submit" disabled="disabled">Disconnect
-                    </button>
-                </div>
-            </form>
-        </div>
-        <div class="col-md-6">
-            <form class="form-inline">
-                <div class="form-group">
-                    <label for="name">What is your name?</label>
-                    <input type="text" id="name" class="form-control" placeholder="Your name here...">
-                </div>
-                <button id="send" class="btn btn-default" type="submit">Send</button>
-            </form>
-        </div>
+<div id="app">
+    <h1>Binance Order Book</h1>
+    <div>
+        <select v-model="selected">
+            <option v-for="symbol in symbols" v-bind:value="symbol">
+                {{ symbol }}
+            </option>
+        </select>
+        <span>Selected: {{ selected }}</span>
     </div>
     <div class="row">
-        <div class="col-md-12">
-            <table id="conversation" class="table table-striped">
-                <thead>
-                <tr>
-                    <th>StockInfo</th>
-                </tr>
-                </thead>
-                <tbody id="userinfo">
-                </tbody>
-            </table>
+        <div class="column">
+            <h3>Asks</h3>
+            <ul>
+                <li v-for="(value, name) in list1">Price:Quantity: {{name}}:{{value}}</li>
+            </ul>
+        </div>
+        <div class="column">
+            <h3>Bids</h3>
+            <ul>
+                <li v-for="(value, name) in list2">Price:Quantity: {{name}}:{{value}}</li>
+            </ul>
         </div>
     </div>
 </div>
 </body>
+<script>
+let stompClient = null;
+var vm = new Vue({
+	el: '#app',
+	mounted: function () {
+	    axios.get('http://localhost:8090/api/v1/binance')
+          .then(function (response) {
+            // handle success
+            console.log(response);
+            vm.symbols = response.data;
+            vm.selected = response.data[0];
+          })
+          .catch(function (error) {
+            // handle error
+            console.log(error);
+          })
+          .finally(function () {
+            // always executed
+          });
+
+		this.$nextTick(function () {
+			let socket = new SockJS('/test-info');
+		    stompClient = Stomp.over(socket);
+		    stompClient.connect({}, function (frame) {
+		        console.log('Connected: ' + frame);
+
+		        stompClient.subscribe('/stock/price', function (val) {
+		        	console.log(val);
+		        	console.log(JSON.parse(val.body));
+		        	var symbols = JSON.parse(val.body);
+					vm.list1 = symbols[vm.selected]["ASKS"];
+					vm.list2 = symbols[vm.selected]["BIDS"];
+		        });
+		    });
+		});
+	},
+	data: function () {
+		return {
+	   		message: 'Dynamic Content',
+	   		list1: [],
+	   		list2: [],
+	   		selected: 'A',
+            symbols: null
+		}
+	}
+})
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+/* Create two equal columns that floats next to each other */
+.column {
+  float: left;
+  width: 50%;
+  padding: 10px;
+  height: 300px; /* Should be removed. Only for demonstration */
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+</style>
+
 </html>
