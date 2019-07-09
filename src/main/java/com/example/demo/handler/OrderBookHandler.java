@@ -34,7 +34,7 @@ public class OrderBookHandler {
 
     private BlockingQueue<OrderBookModel> queue = new ArrayBlockingQueue<>(1000, true);
     private Map<String, BlockingQueue<OrderBookModel>> queuePerSymbol = new HashMap<>();
-    
+
     private Map<String, Deque<TickerPrice>> symbolPrices = new HashMap<>(); // contains deque for every symbol(XYZ/BTC)
     private TickerStatistics btcusdtPrice;
     private final BinanceApiRestClient binanceApiRestClient;
