@@ -19,7 +19,6 @@ public class BinanceController {
         this.binanceService = binanceService;
     }
 
-    @CrossOrigin
     @GetMapping
     @ResponseBody
     public ResponseEntity<List<String>> getSymbols(){

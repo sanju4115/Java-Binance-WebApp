@@ -1,5 +1,11 @@
 package com.example.demo.dao.impl;
 
+import com.binance.api.client.BinanceApiAsyncRestClient;
+import com.binance.api.client.BinanceApiClientFactory;
+import com.binance.api.client.BinanceApiRestClient;
+import com.binance.api.client.BinanceApiWebSocketClient;
+import com.binance.api.client.domain.general.ExchangeInfo;
+import com.binance.api.client.domain.market.*;
 import com.example.demo.dao.OrderBookDao;
 import com.example.demo.entity.OrderUpdate;
 import org.influxdb.InfluxDB;
@@ -23,6 +29,14 @@ public class OrderBookDaoImpl implements OrderBookDao {
 
     @Override
     public List<OrderUpdate> getOrderBook(){
+        BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance();
+        BinanceApiRestClient client = factory.newRestClient();
+        ExchangeInfo exchangeInfo = client.getExchangeInfo();
+        TickerStatistics neoeth = client.get24HrPriceStatistics("NEOETH");
+        List<BookTicker> bookTickers = client.getBookTickers();
+        List<Candlestick> neoeth1 = client.getCandlestickBars("NEOETH", CandlestickInterval.DAILY);
+        List<TickerStatistics> list = client.getAll24HrPriceStatistics();
+        List<TickerPrice> tickers = client.getAllPrices();
         QueryResult queryResult = influxDB.query(
                 new Query("SELECT * FROM order_book", "mstakx")
         );
