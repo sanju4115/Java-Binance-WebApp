@@ -13,6 +13,7 @@ import com.binance.api.client.domain.market.TickerPrice;
 import com.binance.api.client.domain.market.TickerStatistics;
 import com.example.demo.model.OrderBookModel;
 import com.example.demo.service.BinanceService;
+import com.example.demo.service.BuySellService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +40,14 @@ public class OrderBookHandler {
     private TickerStatistics btcusdtPrice;
     private final BinanceApiRestClient binanceApiRestClient;
     private final BinanceService binanceService;
+    private final BuySellService buySellService;
 
     @Autowired
     public OrderBookHandler(BinanceApiRestClient binanceApiRestClient,
-                            BinanceService binanceService) {
+                            BinanceService binanceService, BuySellService buySellService) {
         this.binanceApiRestClient = binanceApiRestClient;
         this.binanceService = binanceService;
+        this.buySellService = buySellService;
     }
 
     @PostConstruct
@@ -157,7 +160,7 @@ public class OrderBookHandler {
                         buyersVsQueue.remove(aLong);
                     });
                     System.out.println("Price Change Percent BTC in 24 hrs: "+priceChangePercentBTC + ", Required Price Change Percent BTC in 24 hrs: "+3);
-                    if (Math.abs(priceChangePercentBTC) < 3 && Math.abs(priceChangePercentCoin) < 1.5) {
+                    if (Math.abs(priceChangePercentBTC) < 4 && Math.abs(priceChangePercentCoin) < 1.5) {
                         LOG.info("Initial condition met");
                         BlockingQueue<OrderBookModel> queue = new ArrayBlockingQueue<>(1000, true);
                         Thread thread = new Thread(new Buyer(queue));
@@ -255,44 +258,38 @@ public class OrderBookHandler {
             double buyingPrice = ((orderBookModel.getBestAsk().getPrice().doubleValue() +
                     orderBookModel.getBestBid().getPrice().doubleValue())/2) * 0.005; // 0.5% of avg of best ask and bid
 
-            NewOrderResponse buyOrderResponse = binanceApiRestClient.newOrder( // buy order
-                    new NewOrder(
-                            symbol,
-                            OrderSide.BUY,
-                            OrderType.LIMIT,
-                            TimeInForce.GTC,
-                            "10",
-                            String.valueOf(buyingPrice)
-                    ));
-
-            LOG.info("BuyOrderResponse: {}", buyOrderResponse);
-
-            NewOrderResponse stopLossOrderResponse = binanceApiRestClient.newOrder( // stop loss
-                    new NewOrder(
-                            symbol,
-                            OrderSide.SELL,
-                            OrderType.STOP_LOSS,
-                            TimeInForce.GTC,
-                            "10",
-                            String.valueOf(buyingPrice - 0.07 * buyingPrice)
-                    )
+            buySellService.action(
+                    symbol,
+                    String.valueOf(buyingPrice),
+                    OrderSide.BUY,
+                    OrderType.LIMIT,
+                    "10"
             );
 
-            LOG.info("StopLossOrderResponse: {}", stopLossOrderResponse);
+            LOG.info("Buy order: {}, quantity: {}, price: {}", symbol, 10, buyingPrice);
+            double stopLossPrice = buyingPrice - 0.07 * buyingPrice;
+
+            buySellService.action(
+                    symbol,
+                    String.valueOf(stopLossPrice),
+                    OrderSide.SELL,
+                    OrderType.STOP_LOSS,
+                    "10"
+            );
+
+            LOG.info("STOP LOSS: {}, quantity: {}, price: {}", symbol, 10, stopLossPrice);
 
             double sellingPrice = buyingPrice + buyingPrice * 0.05;
-            NewOrderResponse sellOrderResponse = binanceApiRestClient.newOrder(
-                    new NewOrder(
-                            symbol,
-                            OrderSide.SELL,
-                            OrderType.LIMIT,
-                            TimeInForce.GTC,
-                            "10",
-                            String.valueOf(sellingPrice)
-                    )
+
+            NewOrderResponse sellOrderResponse = buySellService.action(
+                    symbol,
+                    String.valueOf(sellingPrice),
+                    OrderSide.SELL,
+                    OrderType.LIMIT,
+                    "10"
             );
 
-            LOG.info("SellOrderResponse: {}", sellOrderResponse);
+            LOG.info("Sell order: {}, quantity: {}, price: {}", symbol, 10, sellingPrice);
 
             try {
                 Thread.sleep(20000); // waiting for 20 secs
@@ -300,25 +297,20 @@ public class OrderBookHandler {
                 LOG.error(e.toString());
             }
 
-            Order orderStatus = binanceApiRestClient.getOrderStatus(
-                    new OrderStatusRequest(sellOrderResponse.getClientOrderId(), sellOrderResponse.getOrderId())
-            );
-
+            Order orderStatus = buySellService.orderStatus(sellOrderResponse);
             if (orderStatus.getStatus().equals(OrderStatus.FILLED)) return;
 
+            double reducedSellPrice = sellingPrice - sellingPrice * 0.01;
             // Todo :- check do we need to withdraw before placing the sell order again
-            NewOrderResponse finalSellOrderResponse = binanceApiRestClient.newOrder( // after 20 secs decrease the sell price by 1%
-                    new NewOrder(
-                        symbol,
-                        OrderSide.SELL,
-                        OrderType.LIMIT,
-                        TimeInForce.GTC,
-                        "10",
-                        String.valueOf(sellingPrice - sellingPrice * 0.01)
-                    )
+            buySellService.action( // after 20 secs decrease the sell price by 1%
+                    symbol,
+                    String.valueOf(reducedSellPrice),
+                    OrderSide.SELL,
+                    OrderType.LIMIT,
+                    "10"
             );
 
-            LOG.info("FinalSellOrderResponse: {}", finalSellOrderResponse);
+            LOG.info("Sell order after reduced price: {}, quantity: {}, price: {}", symbol, 10, reducedSellPrice);
         }
     }
 
