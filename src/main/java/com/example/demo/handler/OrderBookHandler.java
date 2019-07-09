@@ -34,7 +34,8 @@ public class OrderBookHandler {
 
     private BlockingQueue<OrderBookModel> queue = new ArrayBlockingQueue<>(1000, true);
     private Map<String, BlockingQueue<OrderBookModel>> queuePerSymbol = new HashMap<>();
-    private Map<String, Deque<TickerPrice>> symbolPrices = new HashMap<>();
+    
+    private Map<String, Deque<TickerPrice>> symbolPrices = new HashMap<>(); // contains deque for every symbol(XYZ/BTC)
     private TickerStatistics btcusdtPrice;
     private final BinanceApiRestClient binanceApiRestClient;
     private final BinanceService binanceService;
@@ -173,6 +174,12 @@ public class OrderBookHandler {
             }
         }
 
+        /**
+         * Deque contains 10 records for last 10 minutes
+         * @param coin
+         * @return percentage change in symbol(XYZ/BTC) in last 10 mins
+         * @throws NoPriceFoundException
+         */
         private double getSymbolPricePercentageChange(String coin) throws NoPriceFoundException {
             Deque<TickerPrice> tickerStatisticsCoin = symbolPrices.get(coin+"BTC");
             if (tickerStatisticsCoin == null){
