@@ -160,7 +160,7 @@ public class OrderBookHandler {
                         buyersVsQueue.remove(aLong);
                     });
                     System.out.println("Price Change Percent BTC in 24 hrs: "+priceChangePercentBTC + ", Required Price Change Percent BTC in 24 hrs: "+3);
-                    if (Math.abs(priceChangePercentBTC) < 4 && Math.abs(priceChangePercentCoin) < 1.5) {
+                    if (Math.abs(priceChangePercentBTC) < 3 && Math.abs(priceChangePercentCoin) < 1.5) {
                         LOG.info("Initial condition met");
                         BlockingQueue<OrderBookModel> queue = new ArrayBlockingQueue<>(1000, true);
                         Thread thread = new Thread(new Buyer(queue));
