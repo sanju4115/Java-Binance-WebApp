@@ -13,21 +13,21 @@ import org.springframework.core.annotation.Order;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class BinanceConfig {
 
+    // use real api key and secret for buy and selling coins
+    private final BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance("API-KEY", "SECRET");
+
     @Bean
     public BinanceApiRestClient getBinanceApiRestClient(){
-        BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance();
         return factory.newRestClient();
     }
 
     @Bean
     public BinanceApiWebSocketClient getBinanceApiWebSocketClient(){
-        BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance();
         return factory.newWebSocketClient();
     }
 
     @Bean
     public BinanceApiAsyncRestClient getBinanceApiAsyncRestClient(){
-        BinanceApiClientFactory factory = BinanceApiClientFactory.newInstance();
         return factory.newAsyncRestClient();
     }
 

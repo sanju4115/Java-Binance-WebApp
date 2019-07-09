@@ -59,7 +59,12 @@ public class OrderBookHandler {
 
     }
 
-    @Scheduled(fixedDelay=60000) // runs every minute
+    /**
+     * Runs every minute
+     * to calculate the price statistics of BTCUSDT in last 24 hours
+     * and price of XYZ/BTC in last 10 minutes
+     */
+    @Scheduled(fixedDelay=60000) //
     public void getPrice(){
         btcusdtPrice = binanceApiRestClient.get24HrPriceStatistics("BTCUSDT");
         List<TickerPrice> tickerPrices = binanceApiRestClient.getAllPrices();
@@ -77,13 +82,17 @@ public class OrderBookHandler {
                 }
                 queue.offer(tickerPrice);
             }
-            System.out.println(symbol +" "+queue.size());
+            //System.out.println(symbol +" "+queue.size());
             symbolPrices.put(symbol, queue);
         }
     }
 
 
-    // Distributes streaming order book data to respective symbol handler
+    /**
+     * Distributes streaming order book data to respective symbol handler
+     * Queue is getting filled by controller EventController (/add-event/write)
+     * which is executed by the database when something is inserted on it
+     */
     public class DataDistributor implements Runnable {
         private BlockingQueue<OrderBookModel> queue;
         DataDistributor(BlockingQueue<OrderBookModel> q) {
@@ -103,7 +112,10 @@ public class OrderBookHandler {
         }
     }
 
-    // Handler for each symbol
+    /**
+     * Handler for each symbol(XYZ/BTC)
+     * Queue is getting filled by Distributor for particular symbol
+     */
     class Handler implements Runnable{
         private BlockingQueue<OrderBookModel> queue;
         private  Map<Long, Thread> buyers = new HashMap<>();
@@ -122,11 +134,17 @@ public class OrderBookHandler {
                     String symbol = orderBook.getSymbol();
                     int btc = symbol.indexOf("BTC");
                     String coin = symbol.substring(0, btc);
-                    double priceChangePercentCoin = getSymbolPricePercentageChange(coin);
+                    double priceChangePercentCoin = 0;
+                    try {
+                        priceChangePercentCoin = getSymbolPricePercentageChange(coin);
+                    } catch (NoPriceFoundException e) {
+                       continue;
+                    }
                     Set<Long> threadIds = new HashSet<>();
                     for (Map.Entry<Long, Thread> conditionChecker : buyers.entrySet()){
                         Thread thread = conditionChecker.getValue();
                         if (thread.isAlive()){
+                            // put the order book in the buyer queue which is checking for the 10 sec window condition
                             BlockingQueue<OrderBookModel> queue = buyersVsQueue.get(thread.getId());
                             queue.put(orderBook);
                         }else {
@@ -137,14 +155,17 @@ public class OrderBookHandler {
                         buyers.remove(aLong);
                         buyersVsQueue.remove(aLong);
                     });
-                    if (Math.abs(priceChangePercentBTC) > 3 && Math.abs(priceChangePercentCoin) < 1.5) {
+                    System.out.println("Price Change Percent BTC in 24 hrs: "+priceChangePercentBTC + ", Required Price Change Percent BTC in 24 hrs: "+3);
+                    if (Math.abs(priceChangePercentBTC) < 3 && Math.abs(priceChangePercentCoin) < 1.5) {
                         LOG.info("Initial condition met");
                         BlockingQueue<OrderBookModel> queue = new ArrayBlockingQueue<>(1000, true);
                         Thread thread = new Thread(new Buyer(queue));
                         buyers.put(thread.getId(), thread);
-                        buyersVsQueue.put(thread.getId(), queue);
+                        buyersVsQueue.put(thread.getId(), queue); // store the queue with respective buyer thread id
                         queue.put(orderBook);
                         thread.start();
+                    }else {
+                        //LOG.info("Initial condition not met");
                     }
                 } catch (InterruptedException e) {
                     LOG.error(e.toString());
@@ -152,19 +173,24 @@ public class OrderBookHandler {
             }
         }
 
-        private double getSymbolPricePercentageChange(String coin) {
+        private double getSymbolPricePercentageChange(String coin) throws NoPriceFoundException {
             Deque<TickerPrice> tickerStatisticsCoin = symbolPrices.get(coin+"BTC");
+            if (tickerStatisticsCoin == null){
+                throw new NoPriceFoundException();
+            }
             TickerPrice first = tickerStatisticsCoin.getFirst();
             TickerPrice last = tickerStatisticsCoin.getLast();
             return (Double.valueOf(last.getPrice()) -
-                    Double.valueOf(first.getPrice()))/Double.valueOf(first.getPrice())*100;
+                    Double.valueOf(first.getPrice())) / Double.valueOf(first.getPrice()) * 100;
         }
     }
 
+    /**
+     * Buyer checks for the conditions in 10 sec window after initial conditions are met
+     * Queue is filled by the handler for the streaming order book
+     */
     class Buyer implements Runnable {
-
         private BlockingQueue<OrderBookModel> queue;
-
         Buyer(BlockingQueue<OrderBookModel> q) {
             this.queue = q;
         }
@@ -177,7 +203,7 @@ public class OrderBookHandler {
             while (true) {
                 try {
                     orderBook = queue.take();
-                    LOG.info("Buyer started: {}", orderBook);
+                    LOG.info("Buyer started: {}", orderBook.getSymbol());
                     if (System.currentTimeMillis() > thresholdTime) break;
                     double high = orderBook.getBestBid().getPrice().doubleValue();
                     double low = high * 0.97;
@@ -189,12 +215,13 @@ public class OrderBookHandler {
                             totalBitcoin += price * bid.getValue().doubleValue();
                         }
                     }
-                    if (totalBitcoin < 3) { // greater than equal to 3 BTC
+                    LOG.info("Total bitcoin bid {}", totalBitcoin);
+                    if (totalBitcoin < 3) { // less than equal to 3 BTC
                         break;
                     }
                     double lowAsk = orderBook.getBestAsk().getPrice().doubleValue();
                     double highAsk = lowAsk * 1.03;
-                    Map<BigDecimal, BigDecimal> asks = orderBook.getBids();
+                    Map<BigDecimal, BigDecimal> asks = orderBook.getAsks();
                     double totalBitcoinAsk = 0;
                     for (Map.Entry<BigDecimal, BigDecimal> ask : asks.entrySet()) {
                         double price = ask.getKey().doubleValue();
@@ -202,6 +229,7 @@ public class OrderBookHandler {
                             totalBitcoinAsk += price * ask.getValue().doubleValue();
                         }
                     }
+                    LOG.info("Total bitcoin ask {}", totalBitcoinAsk);
                     if (totalBitcoinAsk < 4*totalBitcoin) { // less than 4 times the bid volume
                         break;
                     }
@@ -211,13 +239,11 @@ public class OrderBookHandler {
             }
 
             if (System.currentTimeMillis() < thresholdTime) return;
-            buy(orderBook);
+            buy(orderBook); // all conditions satisfied, now buy !!
         }
 
-
-
         private void buy(OrderBookModel orderBookModel) {
-            LOG.info("Buyer started");
+            LOG.info("Buying the symbol: {}", orderBookModel.getSymbol());
             String symbol = orderBookModel.getSymbol();
             double buyingPrice = ((orderBookModel.getBestAsk().getPrice().doubleValue() +
                     orderBookModel.getBestBid().getPrice().doubleValue())/2) * 0.005; // 0.5% of avg of best ask and bid

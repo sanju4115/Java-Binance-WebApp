@@ -32,7 +32,7 @@ public class EventController {
 
     @PostMapping(value = "/add-event/write", consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseBody
-    public void eventAdd(RequestEntity<InputStream> entity) throws IOException, ClassNotFoundException, InterruptedException {
+    public void eventAdd(RequestEntity<InputStream> entity) throws IOException, InterruptedException {
         BlockingQueue<OrderBookModel> queue = orderBookHandler.getQueue();
         InputStream body = entity.getBody();
         String text = null;
@@ -41,7 +41,7 @@ public class EventController {
         try (final Reader reader = new InputStreamReader(body)) {
             text = CharStreams.toString(reader);
         }
-        addToQueue(queue, text);
+        addToQueue(queue, text); // adding to the queue of OrderBookHandler
     }
 
     private void addToQueue(BlockingQueue<OrderBookModel> queue, String text) throws InterruptedException {
