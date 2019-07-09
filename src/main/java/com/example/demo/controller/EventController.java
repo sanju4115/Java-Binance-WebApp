@@ -23,7 +23,6 @@ import java.util.concurrent.BlockingQueue;
 @RestController
 @RequestMapping("/api/v1/order-book")
 public class EventController {
-    //
     private final OrderBookHandler orderBookHandler;
 
     @Autowired
