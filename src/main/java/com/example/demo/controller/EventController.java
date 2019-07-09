@@ -23,7 +23,7 @@ import java.util.concurrent.BlockingQueue;
 @RestController
 @RequestMapping("/api/v1/order-book")
 public class EventController {
-    //CREATE SUBSCRIPTION "sub0" ON "mstakx"."two_hours_mstakx" DESTINATIONS ALL 'http://localhost:8090/api/v1/order-book/add-event'
+    //
     private final OrderBookHandler orderBookHandler;
 
     @Autowired

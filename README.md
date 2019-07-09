@@ -20,6 +20,7 @@ What things you need to install the software and how to install them
     - ` CREATE USER sanjay WITH PASSWORD 'timeseries4days' WITH ALL PRIVILEGES`
     - `CREATE DATABASE mstakx`
     - `CREATE RETENTION POLICY "two_hours_mstakx" ON "mstakx" DURATION 2h REPLICATION 1 DEFAULT`
+    - `CREATE SUBSCRIPTION "sub0" ON "mstakx"."two_hours_mstakx" DESTINATIONS ALL 'http://localhost:8090/api/v1/order-book/add-event'`
 5. **JAVA 8**: [Install](https://www.oracle.com/technetwork/java/javase/overview/java8-2100321.html) It is requrired as application uses spring boot.
 
 ### Installing
