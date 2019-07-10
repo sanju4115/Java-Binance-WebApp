@@ -42,6 +42,9 @@ public class OrderBookHandler {
     private final BinanceService binanceService;
     private final BuySellService buySellService;
 
+    private  Map<Long, Thread> buyers = new HashMap<>();
+    private Map<Long, BlockingQueue<OrderBookModel>> buyersVsQueue = new HashMap<>();
+
     @Autowired
     public OrderBookHandler(BinanceApiRestClient binanceApiRestClient,
                             BinanceService binanceService, BuySellService buySellService) {
@@ -122,8 +125,6 @@ public class OrderBookHandler {
      */
     class Handler implements Runnable{
         private BlockingQueue<OrderBookModel> queue;
-        private  Map<Long, Thread> buyers = new HashMap<>();
-        private Map<Long, BlockingQueue<OrderBookModel>> buyersVsQueue = new HashMap<>();
         Handler(BlockingQueue<OrderBookModel> q) {
             this.queue = q;
         }
@@ -160,7 +161,7 @@ public class OrderBookHandler {
                         buyersVsQueue.remove(aLong);
                     });
                     System.out.println("Price Change Percent BTC in 24 hrs: "+priceChangePercentBTC + ", Required Price Change Percent BTC in 24 hrs: "+3);
-                    if (Math.abs(priceChangePercentBTC) < 3 && Math.abs(priceChangePercentCoin) < 1.5) {
+                    if (Math.abs(priceChangePercentBTC) < 4 && Math.abs(priceChangePercentCoin) < 1.5) {
                         LOG.info("Initial condition met");
                         BlockingQueue<OrderBookModel> queue = new ArrayBlockingQueue<>(1000, true);
                         Thread thread = new Thread(new Buyer(queue));
