@@ -180,12 +180,12 @@ public class OrderBookHandler {
 
         /**
          * Deque contains 10 records for last 10 minutes
-         * @param coin
-         * @return percentage change in symbol(XYZ/BTC) in last 10 mins
-         * @throws NoPriceFoundException
+         * @param symbol XYZ/BTC
+         * @return percentage change in symbol(XYZ/BTC) in last 10 minutes
+         * @throws NoPriceFoundException when symbol not found in the map symbolPrices
          */
-        private double getSymbolPricePercentageChange(String coin) throws NoPriceFoundException {
-            Deque<TickerPrice> tickerStatisticsCoin = symbolPrices.get(coin+"BTC");
+        private double getSymbolPricePercentageChange(String symbol) throws NoPriceFoundException {
+            Deque<TickerPrice> tickerStatisticsCoin = symbolPrices.get(symbol+"BTC");
             if (tickerStatisticsCoin == null){
                 throw new NoPriceFoundException();
             }
